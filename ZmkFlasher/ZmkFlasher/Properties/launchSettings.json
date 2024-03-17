@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ZmkFlasher": {
+      "commandName": "Project",
+      "commandLineArgs": "--l \"C:\\Users\\domin\\Downloads\\zmk\\firmware\\glove80_lh-zmk.uf2\" --r \"C:\\Users\\domin\\Downloads\\zmk\\firmware\\glove80_rh-zmk.uf2\""
+    }
+  }
+}
