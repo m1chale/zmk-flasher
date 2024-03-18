@@ -3,6 +3,12 @@ using Dotcore.FileSystem.File;
 using ZmkFlasher.Arguments;
 using ZmkFlasher.WaitRemovableDevice;
 
+var drives = DriveInfo.GetDrives();
+foreach (var drive in drives)
+{
+    Console.WriteLine($"Drive-Label: {drive.VolumeLabel}");
+}
+
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
 if (result.Errors.Any()) throw new Exception($"invalid arguments {result}");
 var arguments = result.Value.ToTypedArguments();
