@@ -10,5 +10,5 @@ var arguments = result.Value.ToTypedArguments();
 arguments.LeftFirmware.ThrowIfNotExists();
 arguments.RightFirmware.ThrowIfNotExists();
 
-await WaitAndCopy.WaitAndCopyFirmware(("GLV80LHBOOT", arguments.LeftFirmware), ("GLV80RHBOOT", arguments.RightFirmware));
+await WaitAndCopy.WaitAndCopyFirmware(("GLV80LHBOOT", arguments.LeftFirmware), ("GLV80RHBOOT", arguments.RightFirmware), arguments.Verbose);
 Console.WriteLine("Done");
