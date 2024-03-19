@@ -6,7 +6,7 @@ using ZmkFlasher.WaitRemovableDevice;
 var drives = DriveInfo.GetDrives();
 foreach (var drive in drives)
 {
-    Console.WriteLine($"Drive-Label: {drive.VolumeLabel}");
+    Console.WriteLine($"Drive-Name: {drive.Name}");
 }
 
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
