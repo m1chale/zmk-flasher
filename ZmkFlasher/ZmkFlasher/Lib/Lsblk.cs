@@ -11,6 +11,7 @@ internal static class Lsblk
         var json = await Process.Run("lsblk", "-lf --json");
         Console.WriteLine(json);
         var data = JsonSerializer.Deserialize<LsblkData>(json);
+        if(data is null) throw new Exception("Failed to parse lsblk output");
         return data.BlockDevices.Select(d => new Device(d.Name, d.Label, d.Mountpoints.Select(m => m.ToDirectoryInfo())));
     }
 }
