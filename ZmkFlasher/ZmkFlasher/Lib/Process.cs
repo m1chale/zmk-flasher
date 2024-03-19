@@ -1,0 +1,26 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ZmkFlasher.Lib;
+
+internal class Process
+{
+    public static async Task<string> Run(string command, string arguments)
+    {
+        var processDescription = new ProcessStartInfo()
+        {
+            FileName = command,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+        };
+        var process = System.Diagnostics.Process.Start(processDescription);
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0) throw new Exception($"exit code != 0 : {process.ExitCode}");
+
+        return await process.StandardOutput.ReadToEndAsync();
+    }
+}

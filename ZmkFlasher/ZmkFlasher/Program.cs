@@ -1,12 +1,13 @@
 ﻿
 using Dotcore.FileSystem.File;
 using ZmkFlasher.Arguments;
+using ZmkFlasher.Lib;
 using ZmkFlasher.WaitRemovableDevice;
 
-var drives = DriveInfo.GetDrives();
+var drives = await Lsblk.Run();
 foreach (var drive in drives)
 {
-    Console.WriteLine($"Drive-Name: {drive.Name}");
+    Console.WriteLine(drive);
 }
 
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
