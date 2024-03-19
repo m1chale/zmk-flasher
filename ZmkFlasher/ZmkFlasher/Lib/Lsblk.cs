@@ -12,12 +12,10 @@ internal static class Lsblk
         Console.WriteLine(json);
         var data = JsonSerializer.Deserialize<LsblkData>(json);
         if(data is null) throw new Exception("Failed to parse lsblk output");
-        var test = data.BlockDevices.Select(d => d.Mountpoints).Where(m => m == null);
-        Console.WriteLine(test.ToArray());
-        return data.BlockDevices.Select(d => new Device(d.Name, d.Label, d.Mountpoints.Select(m => m.ToDirectoryInfo())));
+        return data.BlockDevices.Select(d => new Device(d.Name, d.Label, d.Mountpoints?.Select(m => m.ToDirectoryInfo()) ?? []));
     }
 }
 
 
 internal record LsblkData(IEnumerable<BlockDevice> BlockDevices);
-internal record BlockDevice(string Name, string Label, IEnumerable<string> Mountpoints);
+internal record BlockDevice(string Name, string Label, IEnumerable<string>? Mountpoints);
