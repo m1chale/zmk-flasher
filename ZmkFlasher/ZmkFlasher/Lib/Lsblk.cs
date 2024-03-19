@@ -9,6 +9,7 @@ internal static class Lsblk
     public static async Task<IEnumerable<Device>> Run()
     {
         var json = await Process.Run("lsblk", "-lf --json");
+        Console.WriteLine(json);
         var data = JsonSerializer.Deserialize<LsblkData>(json);
         return data.BlockDevices.Select(d => new Device(d.Name, d.Label, d.Mountpoints.Select(m => m.ToDirectoryInfo())));
     }
