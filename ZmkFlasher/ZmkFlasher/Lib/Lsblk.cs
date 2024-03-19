@@ -13,10 +13,10 @@ internal static class Lsblk
         var data = JsonSerializer.Deserialize<LsblkData>(json);
         if(data is null) throw new Exception("Failed to parse lsblk output");
         Console.WriteLine(data);
-        return data.blockdevices.Select(d => new Device(d.name, d.label, d.mountpoints?.Select(m => m.ToDirectoryInfo()) ?? []));
+        return data.blockdevices.Select(d => new Device(d.name, d.label, d.mountpoints?.Select(m => m.ToDirectoryInfo()).ToArray() ?? []));
     }
 }
 
 
 internal record LsblkData(IEnumerable<BlockDevice> blockdevices);
-internal record BlockDevice(string name, string label, IEnumerable<string>? mountpoints);
+internal record BlockDevice(string name, string label, string[]? mountpoints);

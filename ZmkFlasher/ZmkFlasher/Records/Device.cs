@@ -7,4 +7,4 @@ using System.Threading.Tasks;
 
 namespace ZmkFlasher.Records;
 
-public record Device(string Name, string Label, IEnumerable<Info> MountPoints);
+public record Device(string Name, string Label, Info[] MountPoints);
