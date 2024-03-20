@@ -65,6 +65,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
             Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
         }
 
-        //Firmware.CopyTo(directory);
+        Firmware.CopyTo(directory);
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
     });
 }
