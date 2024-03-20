@@ -67,17 +67,14 @@ public class WaitAndCopyLinux : IWaitAndCopy
         Console.WriteLine($"Copying firmware to {directory}");
         //Firmware.CopyTo(directory);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
-        if (!isMounted)
+        try
         {
-            try
-            {
-                await UDisks.Unmount(device);
-                Console.WriteLine($"Unmounted {device.Label}");
-            }
-            catch (Exception any)
-            {
-                Console.WriteLine($"Failed to unmount {device.Label}: {any.Message}");
-            }
+            await UDisks.Unmount(device);
+            Console.WriteLine($"Unmounted {device.Label}");
+        }
+        catch (Exception any)
+        {
+            Console.WriteLine($"Failed to unmount {device.Label}: {any.Message}");
         }
     }
 }
