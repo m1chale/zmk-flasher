@@ -20,7 +20,7 @@ internal class WaitForDeviceLinux : IWaitForDevice
         while (true)
         {
             var devices = await Lsblk.Run();
-            var device = devices.SingleOrDefault(d => d.Label == volumeLabel);
+            var device = devices.SingleOrDefault(d => d.Label.Equals(volumeLabel));
             if (device != null)
             {
                 Console.WriteLine($"Found {device.Label}");
