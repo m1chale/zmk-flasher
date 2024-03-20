@@ -15,6 +15,7 @@ internal class Process
         {
             FileName = command,
             Arguments = arguments,
+            UseShellExecute = false,
             RedirectStandardOutput = true,
         };
         var process = System.Diagnostics.Process.Start(processDescription);
