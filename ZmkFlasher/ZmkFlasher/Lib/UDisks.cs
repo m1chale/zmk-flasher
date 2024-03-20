@@ -13,7 +13,7 @@ internal static class UDisks
     public static async Task<Info> Mount(Device device)
     {
         var result = await Process.Run("udisksctl", $"mount -b /dev/{device.Name}");
-        var path = result.Split("at").Last().Replace(" ", "");
+        var path = result.Split("at").Last().Replace(" ", "").Replace("\n", "");
         return path.ToDirectoryInfo();
     }
 
