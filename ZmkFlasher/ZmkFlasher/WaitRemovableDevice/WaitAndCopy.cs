@@ -42,9 +42,9 @@ public class WaitAndCopyWindows : IWaitAndCopy
 
 public class WaitAndCopyLinux : IWaitAndCopy
 {
-    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware, string password) => TemporaryDirectory.With(async directory =>
+    public async Task WaitForDeviceAndCopy(string Label, File.Info Firmware, string password)
     {
-        
+
         Device? device;
         while (true)
         {
@@ -55,17 +55,27 @@ public class WaitAndCopyLinux : IWaitAndCopy
         }
         Console.WriteLine($"Device {device.Label} found");
 
-        if (device.MountPoints.Length == 0)
+        var isMounted = device.MountPoints.Length > 0;
+        if (isMounted) Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
+        else
         {
-            directory.EnsureExists();
-            await Mount.Run(device, directory, password);
+            var directory = await UDisks.Mount(device);
             Console.WriteLine($"Mounted {device.Label}");
-        }else
-        {
-            Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
         }
 
         //Firmware.CopyTo(directory);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
-    });
+        if (isMounted)
+        {
+            try
+            {
+                await UDisks.Unmount(device);
+                Console.WriteLine($"Unmounted {device.Label}");
+            }
+            catch (Exception any)
+            {
+                Console.WriteLine($"Failed to unmount {device.Label}: {any.Message}");
+            }
+        }
+    }
 }
