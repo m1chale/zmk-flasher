@@ -56,16 +56,18 @@ public class WaitAndCopyLinux : IWaitAndCopy
         Console.WriteLine($"Device {device.Label} found");
 
         var isMounted = device.MountPoints.Length > 0;
+        var directory = device.MountPoints.SingleOrDefault();
         if (isMounted) Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
         else
         {
-            var directory = await UDisks.Mount(device);
+            directory = await UDisks.Mount(device);
             Console.WriteLine($"Mounted {device.Label}");
         }
 
+        Console.WriteLine($"Copying firmware to {directory}");
         //Firmware.CopyTo(directory);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
-        if (isMounted)
+        if (!isMounted)
         {
             try
             {
