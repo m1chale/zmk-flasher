@@ -8,7 +8,7 @@ internal static class Mount
 {
     public static async Task Run(Device device, Info mountPoint)
     {
-        var result = await Process.Run("mount", $"dev/{device.Name} {mountPoint.Path}");
+        var result = await Process.Run("sudo mount", $"/dev/{device.Name} {mountPoint.Path}");
         Console.WriteLine(result);
     }
 }
