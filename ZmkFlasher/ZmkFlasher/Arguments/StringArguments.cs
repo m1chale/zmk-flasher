@@ -8,7 +8,7 @@ internal class StringArguments
     [Option('r', "right", Required = true, HelpText = "Path to the right firmware file")]
     public string RightFirmwarePath { get; set; } = string.Empty;
 
-    [Option('v', "verbose", Required = false, Default = "false", HelpText = "Verbose output")]
-    public string Verbose { get; set; } = bool.FalseString;
+    [Option('p', "password", Required = false, HelpText = "Password for sudo")]
+    public string Password { get; set; } = string.Empty;
 }
 

@@ -13,12 +13,12 @@ namespace ZmkFlasher.WaitRemovableDevice;
 internal interface IWaitAndCopy
 {
     public static IWaitAndCopy Instance => OperatingSystem.IsWindows() ? new WaitAndCopyWindows() : new WaitAndCopyLinux();
-    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware);
+    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware, string password);
 }
 
 public class WaitAndCopyWindows : IWaitAndCopy
 {
-    public async Task WaitForDeviceAndCopy(string label, File.Info firmware)
+    public async Task WaitForDeviceAndCopy(string label, File.Info firmware, string password)
     {
         var directory = await WaitForDevice(label);
         firmware.CopyTo(directory);
@@ -42,7 +42,7 @@ public class WaitAndCopyWindows : IWaitAndCopy
 
 public class WaitAndCopyLinux : IWaitAndCopy
 {
-    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware) => TemporaryDirectory.With(async directory =>
+    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware, string password) => TemporaryDirectory.With(async directory =>
     {
         
         Device? device;
@@ -58,7 +58,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
         if (device.MountPoints.Length == 0)
         {
             directory.EnsureExists();
-            await Mount.Run(device, directory);
+            await Mount.Run(device, directory, password);
             Console.WriteLine($"Mounted {device.Label}");
         }else
         {

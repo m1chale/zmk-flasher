@@ -9,7 +9,6 @@ internal static class Lsblk
     public static async Task<IEnumerable<Device>> Run()
     {
         var json = await Process.Run("lsblk", "-lf --json");
-        Console.WriteLine(json);
         var data = JsonSerializer.Deserialize<LsblkData>(json);
         if(data is null) throw new Exception("Failed to parse lsblk output");
         return data.blockdevices.Select(d => new Device(
