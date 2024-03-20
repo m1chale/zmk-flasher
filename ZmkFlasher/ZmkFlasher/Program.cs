@@ -13,8 +13,8 @@ foreach (var drive in drives)
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
 if (result.Errors.Any()) throw new Exception($"invalid arguments {result}");
 var arguments = result.Value.ToTypedArguments();
-//arguments.LeftFirmware.ThrowIfNotExists();
-//arguments.RightFirmware.ThrowIfNotExists();
+arguments.LeftFirmware.ThrowIfNotExists();
+arguments.RightFirmware.ThrowIfNotExists();
 
 Console.WriteLine("Connect left or right bootloader");
 await Task.WhenAll(
