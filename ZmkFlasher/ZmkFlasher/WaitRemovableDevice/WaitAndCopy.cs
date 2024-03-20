@@ -1,12 +1,9 @@
 ﻿
 using File = Dotcore.FileSystem.File;
 using Directory = Dotcore.FileSystem.Directory;
-using System.Xml.Linq;
 using Dotcore.FileSystem.File;
 using ZmkFlasher.Lib;
 using ZmkFlasher.Records;
-using Dotcore.FileSystem.Directory;
-using Dotcore.FileSystem;
 
 namespace ZmkFlasher.WaitRemovableDevice;
 
@@ -35,7 +32,7 @@ public class WaitAndCopyWindows : IWaitAndCopy
                 if (drive.VolumeLabel != volumeLabel) continue;
                 return new Directory.Info(drive.RootDirectory.FullName);
             }
-            await Task.Delay(1000);
+            await Task.Delay(100);
         }
     });
 }
@@ -51,7 +48,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
             var devices = await Lsblk.Run();
             device = devices.SingleOrDefault(d => d.Label == Label);
             if (device != null) break;
-            await Task.Delay(1000);
+            await Task.Delay(100);
         }
         Console.WriteLine($"Device {device.Label} found");
 
@@ -67,7 +64,6 @@ public class WaitAndCopyLinux : IWaitAndCopy
 
         Console.WriteLine($"Copying firmware to {directory}");
         Firmware.CopyTo(directory);
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
         try
         {
             await UDisks.Unmount(device);
