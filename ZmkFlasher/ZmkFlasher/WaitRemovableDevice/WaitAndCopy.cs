@@ -75,7 +75,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
         }
         catch (Exception any)
         {
-            Console.WriteLine($"Failed to unmount {device.Label}: {any.Message}");
+            Console.WriteLine($"Failed to unmount {device.Label}: {any}");
         }
     }
 }
