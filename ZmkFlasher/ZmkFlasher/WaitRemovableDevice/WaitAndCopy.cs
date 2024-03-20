@@ -44,6 +44,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
 {
     public Task WaitForDeviceAndCopy(string Label, File.Info Firmware) => TemporaryDirectory.With(async directory =>
     {
+        
         Device? device;
         while (true)
         {
@@ -56,6 +57,7 @@ public class WaitAndCopyLinux : IWaitAndCopy
 
         if (device.MountPoints.Length == 0)
         {
+            directory.EnsureExists();
             await Mount.Run(device, directory);
             Console.WriteLine($"Mounted {device.Label}");
         }else
