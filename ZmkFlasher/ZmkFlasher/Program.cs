@@ -11,13 +11,12 @@ var arguments = result.Value.ToTypedArguments();
 arguments.LeftFirmware.ThrowIfNotExists();
 arguments.RightFirmware.ThrowIfNotExists();
 
-
-
 Console.WriteLine("Connect left and right bootloader");
 var leftDeviceTask = IWaitForDevice.Instance.WaitForDevice("GLV80LHBOOT");
 var rightDeviceTask = IWaitForDevice.Instance.WaitForDevice("GLV80RHBOOT");
 var leftAndRightDevices = await Task.WhenAll(leftDeviceTask, rightDeviceTask);
 if(leftAndRightDevices.Length != 2) throw new Exception("Failed to find left and right bootloader");
+
 var leftDevice = leftAndRightDevices[0];
 var rightDevice = leftAndRightDevices[1];
 var leftMountPoint = leftDevice.MountPoints.Single();
@@ -28,5 +27,7 @@ arguments.LeftFirmware.CopyTo(leftMountPoint);
 Console.WriteLine("copying firmware to right bootloader");
 arguments.RightFirmware.CopyTo(rightMountPoint);
 
+Console.WriteLine("cleaning up");
 await ICleanUpDevice.Instance.CleanUp(leftDevice);
 await ICleanUpDevice.Instance.CleanUp(rightDevice);
+Console.WriteLine("done");
