@@ -18,12 +18,12 @@ internal interface IWaitAndCopy
 
 public class WaitAndCopyWindows : IWaitAndCopy
 {
-    public async Task WaitForDeviceAndCopy(string label, File.Info firmware)
+    public Task WaitForDeviceAndCopy(string label, File.Info firmware) => Task.Run(async () =>
     {
         var directory = await WaitForDevice(label);
         firmware.CopyTo(directory);
         Console.WriteLine($"Flashed {label}");
-    }
+    });
 
     private static Task<Directory.Info> WaitForDevice(string volumeLabel) => Task.Run(async () =>
     {
@@ -42,7 +42,7 @@ public class WaitAndCopyWindows : IWaitAndCopy
 
 public class WaitAndCopyLinux : IWaitAndCopy
 {
-    public async Task WaitForDeviceAndCopy(string Label, File.Info Firmware)
+    public Task WaitForDeviceAndCopy(string Label, File.Info Firmware) => Task.Run(async () =>
     {
 
         Device? device;
@@ -77,5 +77,5 @@ public class WaitAndCopyLinux : IWaitAndCopy
         {
             Console.WriteLine($"Failed to unmount {device.Label}: {any}");
         }
-    }
+    });
 }
