@@ -17,6 +17,21 @@ internal class WaitForDeviceLinux : IWaitForDevice
 {
     public async Task<Device> WaitForDevice(string volumeLabel)
     {
+        var device = await WaitForDeviceWithoutMount(volumeLabel);
+        var isMounted = device.MountPoints.Length > 0;
+        var directory = device.MountPoints.SingleOrDefault();
+        if (isMounted) Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
+        else
+        {
+            directory = await UDisks.Mount(device);
+            Console.WriteLine($"Mounted {device.Label}");
+        }
+        if (directory == null) throw new Exception("Failed to mount device");
+        return device with { MountPoints = [directory] };
+    }
+
+    private static async Task<Device> WaitForDeviceWithoutMount(string volumeLabel)
+    {
         while (true)
         {
             var devices = await Lsblk.Run();
@@ -26,7 +41,7 @@ internal class WaitForDeviceLinux : IWaitForDevice
                 Console.WriteLine($"Found {device.Label}");
                 return new Device(device.Name, device.Label, device.MountPoints);
             }
-            
+
             await Task.Delay(100);
         }
     }
