@@ -63,9 +63,10 @@ public class WaitAndCopyLinux : IWaitAndCopy
             directory = await UDisks.Mount(device);
             Console.WriteLine($"Mounted {device.Label}");
         }
+        if (directory == null) throw new Exception("Failed to mount device");
 
         Console.WriteLine($"Copying firmware to {directory}");
-        //Firmware.CopyTo(directory);
+        Firmware.CopyTo(directory);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
         try
         {
