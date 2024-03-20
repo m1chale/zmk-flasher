@@ -18,6 +18,7 @@ internal class Process
             RedirectStandardOutput = true,
         };
         var process = System.Diagnostics.Process.Start(processDescription);
+        if(process is null) throw new Exception("Failed to start process");
         await process.WaitForExitAsync();
         if (process.ExitCode != 0) throw new Exception($"exit code != 0 : {process.ExitCode}");
 

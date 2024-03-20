@@ -16,7 +16,7 @@ var arguments = result.Value.ToTypedArguments();
 //arguments.LeftFirmware.ThrowIfNotExists();
 //arguments.RightFirmware.ThrowIfNotExists();
 
-
+Console.WriteLine("Connect left or right bootloader");
 await Task.WhenAll(
     IWaitAndCopy.Instance.WaitForDeviceAndCopy("GLV80LHBOOT", arguments.LeftFirmware), 
     IWaitAndCopy.Instance.WaitForDeviceAndCopy("GLV80RHBOOT", arguments.RightFirmware));
