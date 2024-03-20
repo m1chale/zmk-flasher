@@ -20,8 +20,11 @@ internal class CleanUpDeviceLinux : ICleanUpDevice
 {
     public async Task CleanUp(Device device)
     {
+        var devices = await Lsblk.Run();
+        if (!devices.Any(device => device.Label?.Equals(device.Label) ?? false)) return;
         try
         {
+            
             await UDisks.Unmount(device);
             Console.WriteLine($"Unmounted {device.Label}");
         }

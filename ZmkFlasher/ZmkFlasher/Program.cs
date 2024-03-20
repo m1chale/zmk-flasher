@@ -22,7 +22,6 @@ if(leftAndRightDevices.Length != 2) throw new Exception("Failed to find left and
 
 var leftDevice = leftAndRightDevices[0];
 var rightDevice = leftAndRightDevices[1];
-Console.WriteLine("b4 single");
 var leftMountPoint = leftDevice.MountPoints.Single();
 var rightMountPoint = rightDevice.MountPoints.Single();
 
@@ -31,7 +30,10 @@ arguments.LeftFirmware.CopyToOrDryRun(leftMountPoint);
 Console.WriteLine("copying firmware to right bootloader");
 arguments.RightFirmware.CopyToOrDryRun(rightMountPoint);
 
+await Task.Delay(300);
+
 Console.WriteLine("cleaning up");
-await ICleanUpDevice.Instance.CleanUp(leftDevice);
-await ICleanUpDevice.Instance.CleanUp(rightDevice);
+await Task.WhenAll(
+    ICleanUpDevice.Instance.CleanUp(leftDevice), 
+    ICleanUpDevice.Instance.CleanUp(rightDevice));
 Console.WriteLine("done");
