@@ -22,6 +22,7 @@ if(leftAndRightDevices.Length != 2) throw new Exception("Failed to find left and
 
 var leftDevice = leftAndRightDevices[0];
 var rightDevice = leftAndRightDevices[1];
+Console.WriteLine("b4 single");
 var leftMountPoint = leftDevice.MountPoints.Single();
 var rightMountPoint = rightDevice.MountPoints.Single();
 
