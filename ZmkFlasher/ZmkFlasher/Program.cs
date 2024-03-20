@@ -9,6 +9,8 @@ using ZmkFlasher.WaitRemovableDevice;
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
 if (result.Errors.Any()) throw new Exception($"invalid arguments {result}");
 var arguments = result.Value.ToTypedArguments();
+DryRunExtensions.IsDryRun = arguments.DryRun;
+
 arguments.LeftFirmware.ThrowIfNotExistsOrDryRun();
 arguments.RightFirmware.ThrowIfNotExistsOrDryRun();
 
