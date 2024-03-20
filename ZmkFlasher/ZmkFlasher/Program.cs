@@ -13,9 +13,13 @@ foreach (var drive in drives)
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
 if (result.Errors.Any()) throw new Exception($"invalid arguments {result}");
 var arguments = result.Value.ToTypedArguments();
+//arguments.LeftFirmware.ThrowIfNotExists();
+//arguments.RightFirmware.ThrowIfNotExists();
 
-arguments.LeftFirmware.ThrowIfNotExists();
-arguments.RightFirmware.ThrowIfNotExists();
 
-await WaitAndCopy.WaitAndCopyFirmware(("GLV80LHBOOT", arguments.LeftFirmware), ("GLV80RHBOOT", arguments.RightFirmware), arguments.Verbose);
+await Task.WhenAll(
+    IWaitAndCopy.Instance.WaitForDeviceAndCopy("GLV80LHBOOT", arguments.LeftFirmware), 
+    IWaitAndCopy.Instance.WaitForDeviceAndCopy("GLV80RHBOOT", arguments.RightFirmware));
+
+
 Console.WriteLine("Done");
