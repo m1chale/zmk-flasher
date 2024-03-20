@@ -1,5 +1,6 @@
 ﻿
 using Dotcore.FileSystem.File;
+using ZmkFlasher;
 using ZmkFlasher.Arguments;
 using ZmkFlasher.BL;
 using ZmkFlasher.Lib;
@@ -8,8 +9,8 @@ using ZmkFlasher.WaitRemovableDevice;
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
 if (result.Errors.Any()) throw new Exception($"invalid arguments {result}");
 var arguments = result.Value.ToTypedArguments();
-arguments.LeftFirmware.ThrowIfNotExists();
-arguments.RightFirmware.ThrowIfNotExists();
+arguments.LeftFirmware.ThrowIfNotExistsOrDryRun();
+arguments.RightFirmware.ThrowIfNotExistsOrDryRun();
 
 Console.WriteLine("Connect left and right bootloader");
 var leftDeviceTask = IWaitForDevice.Instance.WaitForDevice("GLV80LHBOOT");
@@ -23,9 +24,9 @@ var leftMountPoint = leftDevice.MountPoints.Single();
 var rightMountPoint = rightDevice.MountPoints.Single();
 
 Console.WriteLine("copying firmware to left bootloader");
-arguments.LeftFirmware.CopyTo(leftMountPoint);
+arguments.LeftFirmware.CopyToOrDryRun(leftMountPoint);
 Console.WriteLine("copying firmware to right bootloader");
-arguments.RightFirmware.CopyTo(rightMountPoint);
+arguments.RightFirmware.CopyToOrDryRun(rightMountPoint);
 
 Console.WriteLine("cleaning up");
 await ICleanUpDevice.Instance.CleanUp(leftDevice);
