@@ -64,7 +64,8 @@ public class WaitAndCopyLinux : IWaitAndCopy
         {
             Console.WriteLine($"Already mounted {device.Label}. {string.Join(",", device.MountPoints.Select(m => m.Path))}");
         }
-
+        var json = await Process.Run("lsblk", "-lf --json");
+        Console.WriteLine(json);
         //Firmware.CopyTo(directory);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
     });
