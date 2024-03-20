@@ -20,8 +20,8 @@ internal class Process
         var process = System.Diagnostics.Process.Start(processDescription);
         if(process is null) throw new Exception("Failed to start process");
         await process.WaitForExitAsync();
-        if (process.ExitCode != 0) throw new Exception($"exit code != 0 : {process.ExitCode}");
-
-        return await process.StandardOutput.ReadToEndAsync();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        if (process.ExitCode != 0) throw new Exception($"exit code != 0 ({process.ExitCode}). Output: {output}");
+        return output;
     }
 }
