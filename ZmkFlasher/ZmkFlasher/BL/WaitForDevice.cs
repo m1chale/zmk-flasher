@@ -1,9 +1,5 @@
-﻿
-using Dotcore.FileSystem.Directory;
-using System.Reflection.Emit;
-using ZmkFlasher.Lib;
+﻿using ZmkFlasher.Lib;
 using ZmkFlasher.Records;
-using Directory= Dotcore.FileSystem.Directory;
 
 namespace ZmkFlasher.WaitRemovableDevice;
 

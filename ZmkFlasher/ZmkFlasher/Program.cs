@@ -1,9 +1,6 @@
-﻿
-using Dotcore.FileSystem.File;
-using ZmkFlasher;
+﻿using ZmkFlasher;
 using ZmkFlasher.Arguments;
 using ZmkFlasher.BL;
-using ZmkFlasher.Lib;
 using ZmkFlasher.WaitRemovableDevice;
 
 var result = CommandLine.Parser.Default.ParseArguments<StringArguments>(args);
