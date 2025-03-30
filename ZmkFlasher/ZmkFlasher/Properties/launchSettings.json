@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ZmkFlasher": {
-      "commandName": "Project",
-      "commandLineArgs": "--l \"left_firmware\" --r \"right_firmware\""
-    }
-  }
-}
