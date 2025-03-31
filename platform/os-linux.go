@@ -2,6 +2,8 @@ package platform
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -25,6 +27,9 @@ func (l LinuxOsOperations) GetBlockDevices() ([]BlockDevice, error) {
 
 	blockDevices := []BlockDevice{}
 	for _, lsblkBlockDevice := range lsblkResponse.BlockDevices {
+		if lsblkBlockDevice.Label == "" {
+			continue
+		}
 		blockDevices = append(blockDevices, BlockDevice{
 			UUID:        lsblkBlockDevice.UUID,
 			Name:        lsblkBlockDevice.Name,
@@ -46,10 +51,13 @@ type LsblkBlockDevice struct {
 }
 
 func (l LinuxOsOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
-	cmd := exec.Command("udisksctl", "mount", "-b", "/dev/"+device.Name)
+	cmd := exec.Command("udisksctl", "mount", "-b", fmt.Sprintf("/dev/%s", device.Name))
 	output, err := cmd.Output()
 	if err != nil {
-		return device, err 
+		if len(device.MountPoints) > 0 {
+			return device, nil
+		}
+		return device, errors.Join(errors.New("could not mount: label: " + device.Label + " name: " + device.Name + " uuid:" + device.UUID), errors.New(string(output)), err)
 	}
 
 	stringOutput := string(output)
