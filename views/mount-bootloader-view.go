@@ -120,7 +120,7 @@ func (f MountBootloaderView) Init() tea.Cmd {
 
 func getBlockDevicesCmd() tea.Cmd {
 	return func() tea.Msg {
-		devices, err := platform.Os.GetBlockDevices()
+		devices, err := platform.Operations.GetBlockDevices()
 		if err != nil {
 			return errors.Join(errors.New("error during block device enumeration"), err)
 		}
@@ -134,7 +134,7 @@ func mountBootloaderCmd(bootloaderName string, device platform.BlockDevice) tea.
 	}
 	mountCmdRunning = true
 	return func() tea.Msg {
-		device, err := platform.Os.MountBlockDevice(device)
+		device, err := platform.Operations.MountBlockDevice(device)
 		if err != nil {
 			mountCmdRunning = false
 			return errors.Join(errors.New("error during mount"), err)

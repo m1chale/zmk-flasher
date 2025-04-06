@@ -1,6 +1,6 @@
 package platform
 
-var Os PlatformOperations
+var Operations PlatformOperations
 
 type PlatformOperations interface {
 	GetBlockDevices() ([]BlockDevice, error)

@@ -1,6 +1,8 @@
 # ZMK-Flassher
 
-A simple go application to flash ZMK firmware to a ZMK powered split keyboards.
+A small go cli application to simplify flashing ZMK firmware to ZMK powered split keyboards.
+It reduces friction by letting you specify the firmware files of the right and left halve (or both) and mounting the keyboard bootloaders interactively.
+Afterwards it will copy the firmware to the keyboard halves.
 
 ## Installation
 
@@ -15,6 +17,7 @@ To flash a firmware run the following command:
 zmk-flasher -l <left_firmware> -r <right_firmware>
 ```
 This lets you mount the left and right keyboard halves interactively.
+Afterwards the application will flash the firmware to the left and right halves.
 
 You can also flash a single firmware file to both halves (Glove 80):
 ```bash

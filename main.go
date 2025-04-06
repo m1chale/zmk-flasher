@@ -11,9 +11,9 @@ func main() {
 
 	switch runtime.GOOS {
 	case "darwin":
-		platform.Os = platform.DarwinPlatformOperations{}
+		platform.Operations = platform.DarwinPlatformOperations{}
 	case "linux":
-		platform.Os = platform.LinuxPlatformOperations{}
+		platform.Operations = platform.LinuxPlatformOperations{}
 	default:
 		println("OS not supported yet")
 		os.Exit(1)
