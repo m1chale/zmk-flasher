@@ -1,4 +1,4 @@
-# ZMK-Flassher
+# ZMK-Flasher
 
 A small go cli application to simplify flashing ZMK firmware to ZMK powered split keyboards.
 It reduces friction by letting you specify the firmware files of the right and left halve and mounting the keyboard bootloaders interactively.
