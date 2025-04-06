@@ -1,4 +1,4 @@
-module zmk-flasher
+module github.com/new-er/zmk-flasher
 
 go 1.24.1
 

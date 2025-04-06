@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"zmk-flasher/platform"
-	"zmk-flasher/slices"
+	"github.com/new-er/zmk-flasher/platform"
+	"github.com/new-er/zmk-flasher/slices"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

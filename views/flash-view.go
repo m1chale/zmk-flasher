@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"zmk-flasher/files"
+	"github.com/new-er/zmk-flasher/files"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

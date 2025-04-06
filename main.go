@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 	"runtime"
-	"zmk-flasher/cmd"
-	"zmk-flasher/platform"
+	"github.com/new-er/zmk-flasher/cmd"
+	"github.com/new-er/zmk-flasher/platform"
 )
 
 func main() {

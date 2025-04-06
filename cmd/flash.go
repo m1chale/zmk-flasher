@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"os"
-	"zmk-flasher/views"
+	"github.com/new-er/zmk-flasher/views"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
