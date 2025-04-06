@@ -13,10 +13,10 @@ type flashStep int
 
 const (
 	Init flashStep = iota
-	MountRightBootloader
 	MountLeftBootloader
-	FlashRightBootloader
 	FlashLeftBootloader
+	MountRightBootloader
+	FlashRightBootloader
 	Done
 )
 
