@@ -3,6 +3,7 @@
 A small go cli application to simplify flashing ZMK firmware to ZMK powered split keyboards.
 It reduces friction by letting you specify the firmware files of the right and left halve and mounting the keyboard bootloaders interactively.
 Afterwards it will copy the firmware to the keyboard halves.
+Currently Linux and MacOS are supported.
 
 ## Installation
 
