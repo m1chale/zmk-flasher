@@ -2,6 +2,8 @@ package views
 
 import (
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 	"zmk-flasher/platform"
 	"zmk-flasher/slices"
@@ -27,6 +29,16 @@ func NewMountBootloaderView(bootloaderName string) MountBootloaderView {
 		devicesInitialized: false,
 		bootloaderName: bootloaderName,
 	}
+}
+
+func (f MountBootloaderView) EnsureMountPathExists() error {
+	if f.mountPath == "" {
+		return errors.New("mount path is empty")
+	}
+	if _, err := os.Stat(f.mountPath); os.IsNotExist(err) {
+		return errors.New("mount path does not exist")
+	}
+	return nil
 }
 
 func (f MountBootloaderView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -83,7 +95,9 @@ func (f MountBootloaderView) View() string {
 	if f.initialDevices == nil {
 		b.WriteString(f.bootloaderName + " :Enumerating connected devices. Please wait...\n")
 	} else if len(f.deviceCandidates) == 0 {
-		b.WriteString("Please connect the " + f.bootloaderName + " bootloader \n")
+		currentDevices := len(f.initialDevices)
+		currentDevicesStr := strconv.FormatInt(int64(currentDevices), 10)
+		b.WriteString("Please connect the " + f.bootloaderName + " bootloader (current devices: " + currentDevicesStr + ")\n")
 	} else if len(f.deviceCandidates) > 0 {
 		b.WriteString("Select the " + f.bootloaderName + " bootloader device\n")
 		for i, device := range f.deviceCandidates {

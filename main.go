@@ -7,8 +7,7 @@ import (
 )
 
 func main() {
-
-	platform.Os = platform.LinuxOsOperations{}
+	platform.Os = platform.LinuxPlatformOperations{}
 	err := cmd.Execute()
 	if err != nil {
 		println(err.Error())
