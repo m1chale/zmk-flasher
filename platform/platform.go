@@ -1,8 +1,8 @@
 package platform
 
-var Os OsOperations
+var Os PlatformOperations
 
-type OsOperations interface {
+type PlatformOperations interface {
 	GetBlockDevices() ([]BlockDevice, error)
 	MountBlockDevice(device BlockDevice) (BlockDevice, error)
 }

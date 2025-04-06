@@ -13,44 +13,54 @@ type flashStep int
 
 const (
 	Init flashStep = iota
-	MountLeftBootloader
-	FlashLeftBootloader
 	MountRightBootloader
+	MountLeftBootloader
 	FlashRightBootloader
+	FlashLeftBootloader
 	Done
 )
 
 type FlashView struct {
 	step                flashStep
-	leftBootloaderFile  string
 	rightBootloaderFile string
+	leftBootloaderFile  string
 
-	mountLeftBootloaderView  MountBootloaderView
 	mountRightBootloaderView MountBootloaderView
+	mountLeftBootloaderView  MountBootloaderView
 
 	dryRun bool
-
-	err error
 }
 
 func NewFlashView(leftBootloaderFile, rightBootloaderFile, leftMountPoint, rightMountPoint string, dryRun bool) FlashView {
 	return FlashView{
-		step:                MountLeftBootloader - 1,
-		leftBootloaderFile:  leftBootloaderFile,
+		step:                Init,
 		rightBootloaderFile: rightBootloaderFile,
-		mountLeftBootloaderView: MountBootloaderView{
-			bootloaderName: "left",
-			mountPath:      leftMountPoint,
-		},
+		leftBootloaderFile:  leftBootloaderFile,
 		mountRightBootloaderView: MountBootloaderView{
 			bootloaderName: "right",
 			mountPath:      rightMountPoint,
+		},
+		mountLeftBootloaderView: MountBootloaderView{
+			bootloaderName: "left",
+			mountPath:      leftMountPoint,
 		},
 		dryRun: dryRun,
 	}
 }
 
 func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if f.step > MountRightBootloader && f.step < FlashRightBootloader {
+		if err := f.mountRightBootloaderView.EnsureMountPathExists(); err != nil {
+			println("right bootloader was removed unexpectedly")
+			return f, tea.Quit
+		}
+	}
+	if f.step > MountLeftBootloader && f.step < FlashLeftBootloader {
+		if err := f.mountLeftBootloaderView.EnsureMountPathExists(); err != nil {
+			println("left bootloader was removed unexpectedly")
+			return f, tea.Quit
+		}
+	}
 	commands := []tea.Cmd{}
 
 	switch msg := msg.(type) {
@@ -77,22 +87,22 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch f.step {
-	case MountLeftBootloader:
-		model, cmd := f.mountLeftBootloaderView.Update(msg)
-		f.mountLeftBootloaderView = model.(MountBootloaderView)
-		if cmd != nil {
-			commands = append(commands, cmd)
-		}
 	case MountRightBootloader:
 		model, cmd := f.mountRightBootloaderView.Update(msg)
 		f.mountRightBootloaderView = model.(MountBootloaderView)
 		if cmd != nil {
 			commands = append(commands, cmd)
 		}
-	case FlashLeftBootloader:
-		commands = append(commands, CopyFileCmd("left", f.leftBootloaderFile, f.mountLeftBootloaderView.mountPath+"/file.uf2", f.dryRun))
+	case MountLeftBootloader:
+		model, cmd := f.mountLeftBootloaderView.Update(msg)
+		f.mountLeftBootloaderView = model.(MountBootloaderView)
+		if cmd != nil {
+			commands = append(commands, cmd)
+		}
 	case FlashRightBootloader:
 		commands = append(commands, CopyFileCmd("right", f.rightBootloaderFile, f.mountRightBootloaderView.mountPath+"/file.uf2", f.dryRun))
+	case FlashLeftBootloader:
+		commands = append(commands, CopyFileCmd("left", f.leftBootloaderFile, f.mountLeftBootloaderView.mountPath+"/file.uf2", f.dryRun))
 	}
 
 	return f, tea.Batch(commands...)
@@ -100,26 +110,24 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (f FlashView) View() string {
 	b := strings.Builder{}
-	b.WriteString("Flash View\n")
-	b.WriteString("Left Bootloader File: " + f.leftBootloaderFile + "\n")
+	b.WriteString("Zmk Flasher\n")
 	b.WriteString("Right Bootloader File: " + f.rightBootloaderFile + "\n")
-	b.WriteString("Left Mount Point: " + f.mountLeftBootloaderView.mountPath + "\n")
+	b.WriteString("Left Bootloader File: " + f.leftBootloaderFile + "\n")
 	b.WriteString("Right Mount Point: " + f.mountRightBootloaderView.mountPath + "\n")
+	b.WriteString("Left Mount Point: " + f.mountLeftBootloaderView.mountPath + "\n")
 	b.WriteString("Dry Run: " + strconv.FormatBool(f.dryRun) + "\n")
-	if f.err != nil {
-		b.WriteString("Error: " + f.err.Error() + "\n")
-	}
+	b.WriteString("Press 'q' to quit\n")
 	b.WriteString("----------------\n")
 
 	switch f.step {
-	case MountLeftBootloader:
-		b.WriteString(f.mountLeftBootloaderView.View())
 	case MountRightBootloader:
 		b.WriteString(f.mountRightBootloaderView.View())
-	case FlashLeftBootloader:
-		b.WriteString("Flashing left bootloader\n")
+	case MountLeftBootloader:
+		b.WriteString(f.mountLeftBootloaderView.View())
 	case FlashRightBootloader:
 		b.WriteString("Flashing right bootloader\n")
+	case FlashLeftBootloader:
+		b.WriteString("Flashing left bootloader\n")
 	case Done:
 		b.WriteString("Done\n")
 	}

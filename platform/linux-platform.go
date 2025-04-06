@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-type LinuxOsOperations struct{}
+type LinuxPlatformOperations struct{}
 
-func (l LinuxOsOperations) GetBlockDevices() ([]BlockDevice, error) {
+func (l LinuxPlatformOperations) GetBlockDevices() ([]BlockDevice, error) {
 	cmd := exec.Command("lsblk", "-lf", "--json")
 
 	byteOutput, err := cmd.Output()
@@ -43,7 +43,7 @@ type LsblkResponse struct {
 	BlockDevices []BlockDevice `json:"blockdevices"`
 }
 
-func (l LinuxOsOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
+func (l LinuxPlatformOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
 	cmd := exec.Command("udisksctl", "mount", "-b", fmt.Sprintf("/dev/%s", device.Name))
 	output, err := cmd.Output()
 	if err != nil {

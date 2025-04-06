@@ -8,9 +8,9 @@ import (
 	"howett.net/plist"
 )
 
-type DarwinOperations struct{}
+type DarwinPlatformOperations struct{}
 
-func (l DarwinOperations) GetBlockDevices() ([]BlockDevice, error) {
+func (l DarwinPlatformOperations) GetBlockDevices() ([]BlockDevice, error) {
 	cmd := exec.Command("diskutil", "list", "-plist")
 	output, err := cmd.Output()
 	if err != nil {
@@ -117,7 +117,7 @@ type DiskutilListResponse struct {
 	AllDisksAndPartitions []DiskutilDisk `plist:"AllDisksAndPartitions"`
 }
 
-func (d DarwinOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
+func (d DarwinPlatformOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
 	if len(device.MountPoints) > 0 {
 		return device, nil
 	}
