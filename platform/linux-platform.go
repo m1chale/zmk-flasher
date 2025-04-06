@@ -43,13 +43,6 @@ type LsblkResponse struct {
 	BlockDevices []BlockDevice `json:"blockdevices"`
 }
 
-type LsblkBlockDevice struct {
-	UUID        string   `json:"uuid"`
-	Name        string   `json:"name"`
-	Label       string   `json:"label"`
-	MountPoints []string `json:"mountpoints"`
-}
-
 func (l LinuxPlatformOperations) MountBlockDevice(device BlockDevice) (BlockDevice, error) {
 	cmd := exec.Command("udisksctl", "mount", "-b", fmt.Sprintf("/dev/%s", device.Name))
 	output, err := cmd.Output()
@@ -57,14 +50,14 @@ func (l LinuxPlatformOperations) MountBlockDevice(device BlockDevice) (BlockDevi
 		if len(device.MountPoints) > 0 {
 			return device, nil
 		}
-		return device, errors.Join(errors.New("could not mount: label: " + device.Label + " name: " + device.Name + " uuid:" + device.UUID), errors.New(string(output)), err)
+		return device, errors.Join(errors.New("could not mount: label: "+device.Label+" name: "+device.Name+" uuid:"+device.UUID), errors.New(string(output)), err)
 	}
 
 	stringOutput := string(output)
 	splitOutput := strings.Split(stringOutput, "at")
 	lastSplit := splitOutput[len(splitOutput)-1]
 	mountPoint := strings.TrimSpace(lastSplit)
-	mountPoint = strings.ReplaceAll(mountPoint, "\n", "") 
+	mountPoint = strings.ReplaceAll(mountPoint, "\n", "")
 	device.MountPoints = append(device.MountPoints, mountPoint)
 	return device, nil
 }

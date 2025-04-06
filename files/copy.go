@@ -3,6 +3,7 @@ package files
 import (
 	"io"
 	"os"
+	"strings"
 )
 
 func CopyFile(src, dst string) error {
@@ -19,8 +20,18 @@ func CopyFile(src, dst string) error {
 	defer destinationFile.Close()
 
 	_, err = io.Copy(destinationFile, sourceFile)
-	if err == nil {
-		err = destinationFile.Sync()
+	if err != nil {
+		return err
 	}
-	return err
+
+	if syncErr := destinationFile.Sync(); syncErr != nil {
+		// ignore "device not configured" errors (MCU likely rebooted)
+		if strings.Contains(syncErr.Error(), "device not configured") ||
+			strings.Contains(syncErr.Error(), "input/output error") {
+			return nil
+		}
+		return syncErr
+	}
+
+	return nil
 }
