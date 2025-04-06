@@ -29,18 +29,18 @@ var flashCmd = &cobra.Command{
 }
 
 func init() {
-	flashCmd.Flags().StringVarP(&leftBootloaderFile, "left", "l", "", "The bootloader file for the left controller")
-	flashCmd.Flags().StringVarP(&rightBootloaderFile, "right", "r", "", "The bootloader file for the right controller")
-	flashCmd.Flags().StringVarP(&leftAndRightBootloaderFile, "left-and-right", "a", "", "The bootloader file for both controllers")
+	flashCmd.Flags().StringVarP(&leftBootloaderFile, "left", "l", "", "The bootloader file for the left controller (mutually exclusive with --left-and-right, must be used with --right)")
+	flashCmd.Flags().StringVarP(&rightBootloaderFile, "right", "r", "", "The bootloader file for the right controller (mutually exclusive with --left-and-right, must be used with --left)")
+	flashCmd.Flags().StringVarP(&leftAndRightBootloaderFile, "left-and-right", "a", "", "The bootloader file for both controllers (mutually exclusive with --left and --right)")
 	flashCmd.MarkFlagsRequiredTogether("left", "right")
 	flashCmd.MarkFlagsMutuallyExclusive("left", "left-and-right")
 	flashCmd.MarkFlagsMutuallyExclusive("right", "left-and-right")
 	flashCmd.MarkFlagsOneRequired("left", "right", "left-and-right")
 
-	flashCmd.Flags().StringVarP(&leftControllerMountPoint, "left-mount", "m", "", "The mount point for the left controller")
-	flashCmd.Flags().StringVarP(&rightControllerMountPoint, "right-mount", "n", "", "The mount point for the right controller")
+	flashCmd.Flags().StringVarP(&leftControllerMountPoint, "left-mount", "m", "", "The mount point for the left controller. If not provided, the program will start an interactive mount attempt")
+	flashCmd.Flags().StringVarP(&rightControllerMountPoint, "right-mount", "n", "", "The mount point for the right controller. If not provided, the program will start an interactive mount attempt")
 
-	flashCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Print the commands that would be run without actually running them")
+	flashCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do not copy the bootloader files to the controllers")
 }
 
 func run() {
