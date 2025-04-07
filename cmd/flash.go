@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+
 	"github.com/new-er/zmk-flasher/views"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,12 +10,12 @@ import (
 )
 
 var (
-	leftBootloaderFile         string
-	rightBootloaderFile        string
-	leftAndRightBootloaderFile string
+	leftBootloaderFile         *string = new(string)
+	rightBootloaderFile        *string = new(string)
+	leftAndRightBootloaderFile *string = new(string)
 
-	leftControllerMountPoint  string
-	rightControllerMountPoint string
+	leftControllerMountPoint  *string = new(string)
+	rightControllerMountPoint *string = new(string)
 
 	dryRun bool
 )
@@ -29,36 +30,82 @@ var flashCmd = &cobra.Command{
 }
 
 func init() {
-	flashCmd.Flags().StringVarP(&leftBootloaderFile, "left", "l", "", "The bootloader file for the left controller (mutually exclusive with --left-and-right, must be used with --right)")
-	flashCmd.Flags().StringVarP(&rightBootloaderFile, "right", "r", "", "The bootloader file for the right controller (mutually exclusive with --left-and-right, must be used with --left)")
-	flashCmd.Flags().StringVarP(&leftAndRightBootloaderFile, "left-and-right", "a", "", "The bootloader file for both controllers (mutually exclusive with --left and --right)")
+	flashCmd.Flags().StringVarP(
+		leftBootloaderFile,
+		"left",
+		"l",
+		"",
+		"The bootloader file for the left controller (mutually exclusive with --left-and-right, must be used with --right)")
+
+	flashCmd.Flags().StringVarP(
+		rightBootloaderFile,
+		"right",
+		"r",
+		"",
+		"The bootloader file for the right controller (mutually exclusive with --left-and-right, must be used with --left)")
+
+	flashCmd.Flags().StringVarP(
+		leftAndRightBootloaderFile,
+		"left-and-right",
+		"a",
+		"",
+		"The bootloader file for both controllers (mutually exclusive with --left and --right)")
+
+	flashCmd.Flags().StringVarP(
+		leftControllerMountPoint,
+		"left-mount",
+		"m",
+		"",
+		"The mount point for the left controller. If not provided, the program will start an interactive mount attempt")
+
+	flashCmd.Flags().StringVarP(
+		rightControllerMountPoint,
+		"right-mount",
+		"n",
+		"",
+		"The mount point for the right controller. If not provided, the program will start an interactive mount attempt")
+
+	flashCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do not copy the bootloader files to the controllers")
+
 	flashCmd.MarkFlagsRequiredTogether("left", "right")
 	flashCmd.MarkFlagsMutuallyExclusive("left", "left-and-right")
 	flashCmd.MarkFlagsMutuallyExclusive("right", "left-and-right")
 	flashCmd.MarkFlagsOneRequired("left", "right", "left-and-right")
-
-	flashCmd.Flags().StringVarP(&leftControllerMountPoint, "left-mount", "m", "", "The mount point for the left controller. If not provided, the program will start an interactive mount attempt")
-	flashCmd.Flags().StringVarP(&rightControllerMountPoint, "right-mount", "n", "", "The mount point for the right controller. If not provided, the program will start an interactive mount attempt")
-
-	flashCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do not copy the bootloader files to the controllers")
 }
 
 func run() {
-	if leftAndRightBootloaderFile != "" {
+	if *leftControllerMountPoint == "" {
+		leftControllerMountPoint = nil
+	}
+	if *rightControllerMountPoint == "" {
+		rightControllerMountPoint = nil
+	}
+	if *leftBootloaderFile == "" {
+		leftBootloaderFile = nil
+	}
+	if *rightBootloaderFile == "" {
+		rightBootloaderFile = nil
+	}
+	if *leftAndRightBootloaderFile == "" {
+		leftAndRightBootloaderFile = nil
+	}
+
+	if leftAndRightBootloaderFile != nil {
 		leftBootloaderFile = leftAndRightBootloaderFile
 		rightBootloaderFile = leftAndRightBootloaderFile
 	}
-	if _, err := os.Stat(leftBootloaderFile); os.IsNotExist(err) {
+
+	if _, err := os.Stat(*leftBootloaderFile); os.IsNotExist(err) {
 		println("Left bootloader file does not exist")
 		os.Exit(1)
 	}
-	if _, err := os.Stat(rightBootloaderFile); os.IsNotExist(err) {
+	if _, err := os.Stat(*rightBootloaderFile); os.IsNotExist(err) {
 		println("Right bootloader file does not exist")
 		os.Exit(1)
 	}
-	_,err := tea.NewProgram(views.NewFlashView(
-		leftBootloaderFile,
-		rightBootloaderFile,
+	_, err := tea.NewProgram(views.NewFlashView(
+		*leftBootloaderFile,
+		*rightBootloaderFile,
 		leftControllerMountPoint,
 		rightControllerMountPoint,
 		dryRun,
