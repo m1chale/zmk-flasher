@@ -11,20 +11,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type flashStep int
-
-const (
-	Init flashStep = iota
-	MountRightBootloader
-	MountLeftBootloader
-	FlashRightBootloader
-	FlashLeftBootloader
-	Done
+var (
+	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Bold(true).Foreground(lipgloss.Color("205"))
+	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Foreground(lipgloss.Color("240"))
 )
 
 type FlashView struct {
-	peripheralKeyboardHalfView KeyboardHalfView
+	blockDeviceCmdsView BlockDeviceCmdsView
+
 	centralKeyboardHalfView    KeyboardHalfView
+	peripheralKeyboardHalfView KeyboardHalfView
+	selectedKeyboardHalf       KeyboardHalfRole
 
 	dryRun bool
 }
@@ -35,11 +32,13 @@ func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centra
 			Central,
 			centralBootloaderFile,
 			centralMountPoint,
+			dryRun,
 		),
 		peripheralKeyboardHalfView: NewKeyboardHalfView(
 			Peripheral,
 			peripheralBootloaderFile,
 			peripheralMountPoint,
+			dryRun,
 		),
 		dryRun: dryRun,
 	}
@@ -47,7 +46,13 @@ func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centra
 
 func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := []tea.Cmd{}
-	model, cmd := f.peripheralKeyboardHalfView.Update(msg)
+	model, cmd := f.blockDeviceCmdsView.Update(msg)
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	f.blockDeviceCmdsView = model.(BlockDeviceCmdsView)
+
+	model, cmd = f.peripheralKeyboardHalfView.Update(msg)
 	if cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -61,8 +66,37 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "q" {
+		switch msg.String() {
+		case "q":
 			return f, tea.Quit
+		case "h":
+			if f.CanToggleKeyboardHalf() {
+				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
+			}
+		case "l":
+			if f.CanToggleKeyboardHalf() {
+				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
+			}
+		case "enter":
+			if f.selectedKeyboardHalf == Central {
+				m, cmd := f.centralKeyboardHalfView.NextStep()
+				f.centralKeyboardHalfView = m
+				cmds = append(cmds, cmd)
+			} else {
+				m, cmd := f.peripheralKeyboardHalfView.NextStep()
+				f.peripheralKeyboardHalfView = m
+				cmds = append(cmds, cmd)
+			}
+		}
+	case NextStepMsg:
+		if f.selectedKeyboardHalf == Central {
+			m, cmd := f.centralKeyboardHalfView.NextStep()
+			f.centralKeyboardHalfView = m
+			cmds = append(cmds, cmd)
+		} else {
+			m, cmd := f.peripheralKeyboardHalfView.NextStep()
+			f.peripheralKeyboardHalfView = m
+			cmds = append(cmds, cmd)
 		}
 	case error:
 		println("error")
@@ -70,7 +104,23 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return f, tea.Quit
 	}
 
+	(&f).updateKeyboardHalfIsSelected()
+
 	return f, tea.Batch(cmds...)
+}
+
+func (f *FlashView) updateKeyboardHalfIsSelected() {
+	if f.selectedKeyboardHalf == Central {
+		f.centralKeyboardHalfView = f.centralKeyboardHalfView.SetIsSelected(true)
+		f.peripheralKeyboardHalfView = f.peripheralKeyboardHalfView.SetIsSelected(false)
+	} else {
+		f.centralKeyboardHalfView = f.centralKeyboardHalfView.SetIsSelected(false)
+		f.peripheralKeyboardHalfView = f.peripheralKeyboardHalfView.SetIsSelected(true)
+	}
+}
+
+func (f FlashView) CanToggleKeyboardHalf() bool {
+	return f.centralKeyboardHalfView.CanUnselect() && f.peripheralKeyboardHalfView.CanUnselect()
 }
 
 func (f FlashView) View() string {
@@ -78,28 +128,31 @@ func (f FlashView) View() string {
 	b.WriteString("Zmk Flasher\n")
 	b.WriteString("Dry Run: " + strconv.FormatBool(f.dryRun) + "\n")
 	b.WriteString("Press 'q' to quit\n")
+	if f.CanToggleKeyboardHalf() {
+		b.WriteString("Press 'h'/'l' to switch between keyboard halves\n")
+	}
 	b.WriteString("----------------\n")
 
 	b.WriteString(
 		lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			lipgloss.NewStyle().Margin(0, 1).Render(f.centralKeyboardHalfView.View()),
-			lipgloss.NewStyle().Margin(0, 1).Render(f.peripheralKeyboardHalfView.View()),
-
+			getKeyboardHalfViewStyle(Central, f.selectedKeyboardHalf).Render(f.centralKeyboardHalfView.View()),
+			getKeyboardHalfViewStyle(Peripheral, f.selectedKeyboardHalf).Render(f.peripheralKeyboardHalfView.View()),
 		),
 	)
 
 	return b.String()
 }
 
-func (f FlashView) Init() tea.Cmd {
-	return NextStepCmd()
+func getKeyboardHalfViewStyle(role, selectedKeyboardHalf KeyboardHalfRole) lipgloss.Style {
+	if role == selectedKeyboardHalf {
+		return selectedKeyboardStyle
+	}
+	return unselectedKeyboardStyle
 }
 
-func ErrorCmd(err error) tea.Cmd {
-	return func() tea.Msg {
-		return err
-	}
+func (f FlashView) Init() tea.Cmd {
+	return nil
 }
 
 func NextStepCmd() tea.Cmd {
@@ -110,10 +163,10 @@ func NextStepCmd() tea.Cmd {
 
 type NextStepMsg struct{}
 
-func CopyFileCmd(identifier, src, dest string, dryRun bool) tea.Cmd {
+func CopyFileCmd(src, dest string, dryRun bool) tea.Cmd {
 	return func() tea.Msg {
 		if dryRun {
-			return FileCopiedMsg{Identifier: identifier}
+			return FileCopiedMsg{}
 		}
 		err := files.CopyFile(src, dest)
 		if err != nil {
@@ -122,10 +175,9 @@ func CopyFileCmd(identifier, src, dest string, dryRun bool) tea.Cmd {
 				return errors.Join(errors.New("error copying file from "+src+" to "+dest), err)
 			}
 		}
-		return FileCopiedMsg{Identifier: identifier}
+		return FileCopiedMsg{}
 	}
 }
 
 type FileCopiedMsg struct {
-	Identifier string
 }
