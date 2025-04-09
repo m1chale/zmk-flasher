@@ -1,5 +1,7 @@
 package platform
 
+import "slices"
+
 var Operations PlatformOperations
 
 type PlatformOperations interface {
@@ -8,8 +10,12 @@ type PlatformOperations interface {
 }
 
 type BlockDevice struct {
-	UUID string
-	Name string
-	Label string
+	UUID        string
+	Name        string
+	Label       string
 	MountPoints []string
+}
+
+func CompareBlockDevice(left, right BlockDevice) bool{
+	return left.UUID == right.UUID && left.Name == right.Name && left.Label == right.Label && slices.Equal(left.MountPoints, right.MountPoints)
 }

@@ -6,8 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/new-er/zmk-flasher/files"
-	"github.com/new-er/zmk-flasher/platform"
-	"github.com/new-er/zmk-flasher/slices"
+	"github.com/new-er/zmk-flasher/views/backend"
 )
 
 type KeyboardHalfRole int
@@ -57,11 +56,6 @@ type KeyboardHalfView struct {
 	mountPath      *string
 	isSelected     bool
 
-	devices              []platform.BlockDevice
-	deviceCandidates     []platform.BlockDevice
-	deviceCandidateIndex int
-	selectedDevice       platform.BlockDevice
-
 	dryRun bool
 }
 
@@ -87,14 +81,8 @@ func (k KeyboardHalfView) NextStep() (KeyboardHalfView, tea.Cmd) {
 	if k.step > Done {
 		k.step = Done
 	}
-	if k.step == SelectDevice {
-		return k, ChangeUpdateBlockDevicesCmd(true)
-	}
-	if k.step == Mounting {
-		return k, ChangeUpdateBlockDevicesCmd(false)
-	}
 	if k.step == Flashing {
-		return k, CopyFileCmd(k.bootloaderFile, (*k.mountPath) + "/firmware.uf2", k.dryRun)
+		return k, backend.CopyFileCmd(k.bootloaderFile, (*k.mountPath)+"/firmware.uf2", k.dryRun)
 	}
 
 	return k, nil
@@ -106,39 +94,27 @@ func (k KeyboardHalfView) Init() tea.Cmd {
 
 func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case BlockDevicesReceivedMsg:
+	case backend.BlockDevicesChangedMsg:
 		if k.step == SelectDevice {
-			if k.devices == nil {
-				k.devices = msg.BlockDevices
+			if len(msg.Added) == 0 {
 				return k, nil
 			}
-			addedDevices := slices.GetAddedElements(k.devices, msg.BlockDevices, func(a, b platform.BlockDevice) bool {
-				return a.Name == b.Name
-			})
-			if len(addedDevices) <= 0 {
-				k.devices = msg.BlockDevices
-				return k, nil
+			if len(msg.Added) > 1 {
+				return k, backend.Cmd(errors.New("multiple devices added"))
 			}
-
-			if len(addedDevices) > 1 {
-				return k, Cmd(errors.New("multiple devices detected"))
-			}
-			k.deviceCandidates = addedDevices
-			k.deviceCandidateIndex = 0
-			k.selectedDevice = k.deviceCandidates[k.deviceCandidateIndex]
 
 			return k, tea.Batch(
-				MountBlockDeviceCmd(k.selectedDevice),
+				backend.MountBlockDeviceCmd(msg.Added[0]),
 				NextStepCmd(),
 			)
 		}
-	case BlockDeviceMountedMsg:
+	case backend.BlockDeviceMountedMsg:
 		if k.step == Mounting {
 			k.step = ReadyToFlash
 			k.mountPath = &msg.BlockDevice.MountPoints[0]
 			return k, nil
 		}
-	case FileCopiedMsg:
+	case backend.FileCopiedMsg:
 		if k.step == Flashing {
 			k.step = Done
 			return k, nil
@@ -169,13 +145,9 @@ func (k KeyboardHalfView) View() string {
 		case Unmounted:
 			b.WriteString("Press [Enter] to mount bootloader.\n")
 		case SelectDevice:
-			if k.devices == nil {
-				b.WriteString("Initializing devices...\n")
-			} else {
-				b.WriteString("Please connect the ")
-				b.WriteString(k.role.String())
-				b.WriteString(" controller.\n")
-			}
+			b.WriteString("Please connect the ")
+			b.WriteString(k.role.String())
+			b.WriteString(" controller.\n")
 		case Mounting:
 			b.WriteString("Mounting, please wait...\n")
 		case ReadyToFlash:

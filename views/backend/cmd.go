@@ -1,4 +1,4 @@
-package views
+package backend
 
 import tea "github.com/charmbracelet/bubbletea"
 
