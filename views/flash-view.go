@@ -19,7 +19,7 @@ type FlashView struct {
 
 	centralKeyboardHalfView    KeyboardHalfView
 	peripheralKeyboardHalfView KeyboardHalfView
-	selectedKeyboardHalf       KeyboardHalfRole
+	selectedKeyboardHalf       backend.KeyboardHalfRole
 
 	dryRun bool
 }
@@ -27,13 +27,13 @@ type FlashView struct {
 func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centralMountPoint, peripheralMountPoint *string, dryRun bool) FlashView {
 	return FlashView{
 		centralKeyboardHalfView: NewKeyboardHalfView(
-			Central,
+			backend.Central,
 			centralBootloaderFile,
 			centralMountPoint,
 			dryRun,
 		),
 		peripheralKeyboardHalfView: NewKeyboardHalfView(
-			Peripheral,
+			backend.Peripheral,
 			peripheralBootloaderFile,
 			peripheralMountPoint,
 			dryRun,
@@ -84,25 +84,8 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
 			}
 		case "enter":
-			if f.selectedKeyboardHalf == Central {
-				m, cmd := f.centralKeyboardHalfView.NextStep()
-				f.centralKeyboardHalfView = m
-				cmds = append(cmds, cmd)
-			} else {
-				m, cmd := f.peripheralKeyboardHalfView.NextStep()
-				f.peripheralKeyboardHalfView = m
-				cmds = append(cmds, cmd)
-			}
-		}
-	case NextStepMsg:
-		if f.selectedKeyboardHalf == Central {
-			m, cmd := f.centralKeyboardHalfView.NextStep()
-			f.centralKeyboardHalfView = m
-			cmds = append(cmds, cmd)
-		} else {
-			m, cmd := f.peripheralKeyboardHalfView.NextStep()
-			f.peripheralKeyboardHalfView = m
-			cmds = append(cmds, cmd)
+			keyboardHalf := f.getSelectedKeyboardHalf()
+			cmds = append(cmds, backend.Cmd(NextStepMsg{role: keyboardHalf.role}))
 		}
 	case error:
 		println("error")
@@ -110,23 +93,17 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return f, tea.Quit
 	}
 
-	(&f).updateKeyboardHalfIsSelected()
-
 	return f, tea.Batch(cmds...)
-}
-
-func (f *FlashView) updateKeyboardHalfIsSelected() {
-	if f.selectedKeyboardHalf == Central {
-		f.centralKeyboardHalfView = f.centralKeyboardHalfView.SetIsSelected(true)
-		f.peripheralKeyboardHalfView = f.peripheralKeyboardHalfView.SetIsSelected(false)
-	} else {
-		f.centralKeyboardHalfView = f.centralKeyboardHalfView.SetIsSelected(false)
-		f.peripheralKeyboardHalfView = f.peripheralKeyboardHalfView.SetIsSelected(true)
-	}
 }
 
 func (f FlashView) CanToggleKeyboardHalf() bool {
 	return f.centralKeyboardHalfView.CanUnselect() && f.peripheralKeyboardHalfView.CanUnselect()
+}
+func (f FlashView) getSelectedKeyboardHalf() KeyboardHalfView {
+	if f.selectedKeyboardHalf == backend.Central {
+		return f.centralKeyboardHalfView
+	}
+	return f.peripheralKeyboardHalfView
 }
 
 func (f FlashView) View() string {
@@ -142,25 +119,17 @@ func (f FlashView) View() string {
 	b.WriteString(
 		lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			getKeyboardHalfViewStyle(Central, f.selectedKeyboardHalf).Render(f.centralKeyboardHalfView.View()),
-			getKeyboardHalfViewStyle(Peripheral, f.selectedKeyboardHalf).Render(f.peripheralKeyboardHalfView.View()),
+			getKeyboardHalfViewStyle(backend.Central, f.selectedKeyboardHalf).Render(f.centralKeyboardHalfView.View()),
+			getKeyboardHalfViewStyle(backend.Peripheral, f.selectedKeyboardHalf).Render(f.peripheralKeyboardHalfView.View()),
 		),
 	)
 
 	return b.String()
 }
 
-func getKeyboardHalfViewStyle(role, selectedKeyboardHalf KeyboardHalfRole) lipgloss.Style {
+func getKeyboardHalfViewStyle(role, selectedKeyboardHalf backend.KeyboardHalfRole) lipgloss.Style {
 	if role == selectedKeyboardHalf {
 		return selectedKeyboardStyle
 	}
 	return unselectedKeyboardStyle
 }
-
-func NextStepCmd() tea.Cmd {
-	return func() tea.Msg {
-		return NextStepMsg{}
-	}
-}
-
-type NextStepMsg struct{}
