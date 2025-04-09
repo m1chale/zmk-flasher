@@ -7,15 +7,15 @@ import (
 	"github.com/new-er/zmk-flasher/platform"
 )
 
-type BlockDeviceCmdsView struct {
+type FlashBackend struct {
 	shouldUpdateBlockDevices bool
 }
 
-func (m BlockDeviceCmdsView) Init() tea.Cmd {
+func (m FlashBackend) Init() tea.Cmd {
 	return nil
 }
 
-func (m BlockDeviceCmdsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m FlashBackend) Update(msg tea.Msg) (FlashBackend, tea.Cmd) {
 	switch msg := msg.(type) {
 	case BlockDevicesReceivedMsg:
 		if m.shouldUpdateBlockDevices {
@@ -26,10 +26,6 @@ func (m BlockDeviceCmdsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, updateBlockDevicesEveryCmd()
 	}
 	return m, nil
-}
-
-func (m BlockDeviceCmdsView) View() string {
-	return ""
 }
 
 func updateBlockDevicesEveryCmd() tea.Cmd {

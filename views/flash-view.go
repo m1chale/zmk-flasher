@@ -17,7 +17,7 @@ var (
 )
 
 type FlashView struct {
-	blockDeviceCmdsView BlockDeviceCmdsView
+	backend FlashBackend
 
 	centralKeyboardHalfView    KeyboardHalfView
 	peripheralKeyboardHalfView KeyboardHalfView
@@ -46,13 +46,13 @@ func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centra
 
 func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := []tea.Cmd{}
-	model, cmd := f.blockDeviceCmdsView.Update(msg)
-	if cmd != nil {
-		cmds = append(cmds, cmd)
+	backendModel, backendCmd := f.backend.Update(msg)
+	if backendCmd != nil {
+		cmds = append(cmds, backendCmd)
 	}
-	f.blockDeviceCmdsView = model.(BlockDeviceCmdsView)
+	f.backend = backendModel
 
-	model, cmd = f.peripheralKeyboardHalfView.Update(msg)
+	model, cmd := f.peripheralKeyboardHalfView.Update(msg)
 	if cmd != nil {
 		cmds = append(cmds, cmd)
 	}
