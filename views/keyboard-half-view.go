@@ -121,7 +121,7 @@ func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if len(addedDevices) > 1 {
-				return k, ErrorCmd(errors.New("multiple devices detected"))
+				return k, Cmd(errors.New("multiple devices detected"))
 			}
 			k.deviceCandidates = addedDevices
 			k.deviceCandidateIndex = 0

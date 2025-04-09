@@ -2,8 +2,8 @@ package views
 
 import tea "github.com/charmbracelet/bubbletea"
 
-func ErrorCmd(err error) tea.Cmd {
+func Cmd(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg {
-		return err
+		return msg
 	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type FlashBackend struct {
-	shouldUpdateBlockDevices bool
+	isListeningForBlockDevices bool
 }
 
 func (m FlashBackend) Init() tea.Cmd {
@@ -16,19 +16,22 @@ func (m FlashBackend) Init() tea.Cmd {
 }
 
 func (m FlashBackend) Update(msg tea.Msg) (FlashBackend, tea.Cmd) {
+	cmds := []tea.Cmd{}
 	switch msg := msg.(type) {
 	case BlockDevicesReceivedMsg:
-		if m.shouldUpdateBlockDevices {
-			return m, updateBlockDevicesEveryCmd()
+		if m.isListeningForBlockDevices {
+			cmds = append(cmds, getBlockDevicesEveryCmd())
 		}
-	case changeUpdateBlockDevicesMsg:
-		m.shouldUpdateBlockDevices = msg.ShouldUpdateBlockDevices
-		return m, updateBlockDevicesEveryCmd()
+	case StartBlockDeviceListenerMsg:
+		m.isListeningForBlockDevices = true
+	case StopBlockDeviceListener:
+		m.isListeningForBlockDevices = false
 	}
-	return m, nil
+
+	return m, tea.Batch(cmds...)
 }
 
-func updateBlockDevicesEveryCmd() tea.Cmd {
+func getBlockDevicesEveryCmd() tea.Cmd {
 	return tea.Every(time.Second, func(t time.Time) tea.Msg {
 		devices, err := platform.Operations.GetBlockDevices()
 		if err != nil {
@@ -39,6 +42,13 @@ func updateBlockDevicesEveryCmd() tea.Cmd {
 		}
 	})
 }
+
+type BlockDevicesReceivedMsg struct {
+	BlockDevices []platform.BlockDevice
+}
+
+type StartBlockDeviceListenerMsg struct{}
+type StopBlockDeviceListener struct{}
 
 func MountBlockDeviceCmd(device platform.BlockDevice) tea.Cmd {
 	return func() tea.Msg {
@@ -55,20 +65,4 @@ func MountBlockDeviceCmd(device platform.BlockDevice) tea.Cmd {
 
 type BlockDeviceMountedMsg struct {
 	BlockDevice platform.BlockDevice
-}
-
-func ChangeUpdateBlockDevicesCmd(shouldUpdate bool) tea.Cmd {
-	return func() tea.Msg {
-		return changeUpdateBlockDevicesMsg{
-			ShouldUpdateBlockDevices: shouldUpdate,
-		}
-	}
-}
-
-type changeUpdateBlockDevicesMsg struct {
-	ShouldUpdateBlockDevices bool
-}
-
-type BlockDevicesReceivedMsg struct {
-	BlockDevices []platform.BlockDevice
 }
