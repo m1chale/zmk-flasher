@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/new-er/zmk-flasher/files"
 	"github.com/new-er/zmk-flasher/views"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,6 +15,7 @@ var (
 	leftBootloaderFile         *string = new(string)
 	rightBootloaderFile        *string = new(string)
 	leftAndRightBootloaderFile *string = new(string)
+	leftAndRightBootloaderZip  *string = new(string)
 
 	leftControllerMountPoint  *string = new(string)
 	rightControllerMountPoint *string = new(string)
@@ -52,6 +55,13 @@ func init() {
 		"The bootloader file for both controllers (mutually exclusive with --left and --right)")
 
 	flashCmd.Flags().StringVarP(
+		leftAndRightBootloaderZip,
+		"left-and-right-zip",
+		"z",
+		"",
+		"The bootloader zip file for both controllers (individual bootloader files will be determined by the name containing 'left' or 'right')")
+
+	flashCmd.Flags().StringVarP(
 		leftControllerMountPoint,
 		"left-mount",
 		"m",
@@ -68,12 +78,12 @@ func init() {
 	flashCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Do not copy the bootloader files to the controllers")
 
 	flashCmd.MarkFlagsRequiredTogether("left", "right")
-	flashCmd.MarkFlagsMutuallyExclusive("left", "left-and-right")
-	flashCmd.MarkFlagsMutuallyExclusive("right", "left-and-right")
-	flashCmd.MarkFlagsOneRequired("left", "right", "left-and-right")
+	flashCmd.MarkFlagsMutuallyExclusive("left", "left-and-right", "left-and-right-zip")
+	flashCmd.MarkFlagsMutuallyExclusive("right", "left-and-right", "left-and-right-zip")
+	flashCmd.MarkFlagsOneRequired("left", "right", "left-and-right", "left-and-right-zip")
 }
 
-func run() {
+func run() error {
 	if *leftControllerMountPoint == "" {
 		leftControllerMountPoint = nil
 	}
@@ -89,19 +99,48 @@ func run() {
 	if *leftAndRightBootloaderFile == "" {
 		leftAndRightBootloaderFile = nil
 	}
+	if *leftAndRightBootloaderZip == "" {
+		leftAndRightBootloaderZip = nil
+	}
 
 	if leftAndRightBootloaderFile != nil {
 		leftBootloaderFile = leftAndRightBootloaderFile
 		rightBootloaderFile = leftAndRightBootloaderFile
 	}
 
+	if leftAndRightBootloaderZip != nil {
+		dst := "./tmp"
+		files.EnsureDeleted(dst)
+		files.Unzip(*leftAndRightBootloaderZip, dst)
+
+		defer func(){
+			files.EnsureDeleted(dst)
+		}()
+
+		leftFiles, err := files.GetFilesWithNameContaining(dst, "left")
+		if err != nil {
+			return err
+		}
+		rightFiles, err := files.GetFilesWithNameContaining(dst, "right")
+		if err != nil {
+			return err
+		}
+
+		if len(leftFiles) != 1 {
+			return fmt.Errorf("found more than one file name containing 'left' in the zip")
+		}
+		if len(rightFiles) != 1 {
+			return fmt.Errorf("found more than one file name containing 'right' in the zip")
+		}
+		leftBootloaderFile = &leftFiles[0]
+		rightBootloaderFile = &rightFiles[0]
+	}
+
 	if _, err := os.Stat(*leftBootloaderFile); os.IsNotExist(err) {
-		println("Left bootloader file does not exist")
-		os.Exit(1)
+		return fmt.Errorf("Left bootloader file does not exist")
 	}
 	if _, err := os.Stat(*rightBootloaderFile); os.IsNotExist(err) {
-		println("Right bootloader file does not exist")
-		os.Exit(1)
+		return fmt.Errorf("Right bootloader file does not exist")
 	}
 	_, err := tea.NewProgram(views.NewFlashView(
 		*leftBootloaderFile,
@@ -111,7 +150,7 @@ func run() {
 		dryRun,
 	)).Run()
 	if err != nil {
-		println(err.Error())
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
