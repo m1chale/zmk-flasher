@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/new-er/zmk-flasher/files"
 	"github.com/new-er/zmk-flasher/views/backend"
@@ -30,6 +31,8 @@ type KeyboardHalfView struct {
 	dryRun bool
 
 	foundDevices int
+
+	spinner spinner.Model
 }
 
 func NewKeyboardHalfView(role backend.KeyboardHalfRole, bootloaderFile string, mountPath *string, dryRun bool) KeyboardHalfView {
@@ -37,11 +40,15 @@ func NewKeyboardHalfView(role backend.KeyboardHalfRole, bootloaderFile string, m
 	if mountPath != nil {
 		step = ReadyToFlash
 	}
+	s := spinner.New()
+	s.Spinner = spinner.Dot
 	return KeyboardHalfView{
 		role:           role,
 		bootloaderFile: bootloaderFile,
 		mountPath:      mountPath,
 		step:           step,
+		spinner:        s,
+		dryRun:         dryRun,
 	}
 }
 
@@ -49,88 +56,92 @@ func (k KeyboardHalfView) CanUnselect() bool {
 	return k.step == Unmounted || k.step == ReadyToFlash || k.step == Done
 }
 
-func (k KeyboardHalfView) Init() tea.Cmd {
-	return nil
+func (m KeyboardHalfView) Init() tea.Cmd {
+	return m.spinner.Tick
 }
 
-func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case spinner.TickMsg:
+		s, cmd := m.spinner.Update(msg)
+		m.spinner = s
+		return m, cmd
 	case StartInteractiveMountMsg:
-		if msg.role != k.role {
-			return k, nil
+		if msg.role != m.role {
+			return m, nil
 		}
-		k.step = WaitForMount
+		m.step = WaitForMount
 	case StartFlashMsg:
-		if msg.role != k.role {
-			return k, nil
+		if msg.role != m.role {
+			return m, nil
 		}
-		k.step = Flashing
-		return k, backend.CopyFileCmd(k.bootloaderFile, (*k.mountPath)+"/firmware.uf2", k.dryRun)
+		m.step = Flashing
+		return m, backend.CopyFileCmd(m.bootloaderFile, (*m.mountPath)+"/firmware.uf2", m.dryRun)
 	case NextStepMsg:
-		if msg.role != k.role {
-			return k, nil
+		if msg.role != m.role {
+			return m, nil
 		}
-		if k.step == Unmounted {
-			return k, backend.Cmd(StartInteractiveMountMsg{role: k.role})
+		if m.step == Unmounted {
+			return m, backend.Cmd(StartInteractiveMountMsg{role: m.role})
 		}
-		if k.step == ReadyToFlash {
-			return k, backend.Cmd(StartFlashMsg{role: k.role})
+		if m.step == ReadyToFlash {
+			return m, backend.Cmd(StartFlashMsg{role: m.role})
 		}
 	case backend.BlockDevicesChangedMsg:
-		if k.step == WaitForMount {
-			k.foundDevices = len(msg.BlockDevices)
+		if m.step == WaitForMount {
+			m.foundDevices = len(msg.BlockDevices)
 			if len(msg.Added) == 0 {
-				return k, nil
+				return m, nil
 			}
 			if len(msg.Added) > 1 {
-				return k, backend.Cmd(errors.New("multiple devices added"))
+				return m, backend.Cmd(errors.New("multiple devices added"))
 			}
 
-			k.step = Mounting
-			return k, tea.Batch(
+			m.step = Mounting
+			return m, tea.Batch(
 				backend.MountBlockDeviceCmd(msg.Added[0]),
 			)
-		} else if k.mountPath != nil {
+		} else if m.mountPath != nil {
 			for _, rem := range msg.Removed {
 				for _, remPath := range rem.MountPoints {
-					if remPath == *k.mountPath {
-						k.mountPath = nil
-						if k.step != Done && k.step != Flashing {
-							k.step = Unmounted
+					if remPath == *m.mountPath {
+						m.mountPath = nil
+						if m.step != Done && m.step != Flashing {
+							m.step = Unmounted
 						}
 					}
 				}
 			}
 		}
 	case backend.BlockDeviceMountedMsg:
-		if k.step == Mounting {
-			k.step = ReadyToFlash
-			k.mountPath = &msg.BlockDevice.MountPoints[0]
-			return k, backend.Cmd(InteractiveMountFinishedMsg{})
+		if m.step == Mounting {
+			m.step = ReadyToFlash
+			m.mountPath = &msg.BlockDevice.MountPoints[0]
+			return m, backend.Cmd(InteractiveMountFinishedMsg{})
 		}
 	case backend.FileCopiedMsg:
-		if k.step == Flashing {
-			k.step = Done
-			return k, backend.Cmd(FlashFinishedMsg{role: k.role})
+		if m.step == Flashing {
+			m.step = Done
+			return m, backend.Cmd(FlashFinishedMsg{role: m.role})
 		}
 	}
 
-	return k, nil
+	return m, nil
 }
 
-func (k KeyboardHalfView) View() string {
+func (m KeyboardHalfView) View() string {
 	b := strings.Builder{}
-	b.WriteString(k.role.String())
+	b.WriteString(m.role.String())
 	b.WriteString("\n")
 	b.WriteString("🗎 :")
-	b.WriteString(files.EllipsisFront(k.bootloaderFile, 40))
+	b.WriteString(files.EllipsisFront(m.bootloaderFile, 40))
 	b.WriteString("\n")
 
 	b.WriteString("󱊞 : ")
-	if k.mountPath != nil {
-		b.WriteString(files.EllipsisFront(*k.mountPath, 40))
+	if m.mountPath != nil {
+		b.WriteString(files.EllipsisFront(*m.mountPath, 40))
 	} else {
-		if k.step == Done {
+		if m.step == Done {
 			b.WriteString("")
 		} else {
 			b.WriteString("")
@@ -138,24 +149,27 @@ func (k KeyboardHalfView) View() string {
 	}
 	b.WriteString("\n")
 
-	switch k.step {
+	switch m.step {
 	case Unmounted:
 		b.WriteString("Press [Enter] to mount bootloader.\n")
 	case WaitForMount:
-		b.WriteString("Please connect the ")
-		b.WriteString(k.role.String())
-		b.WriteString(" controller. (current devices ")
-		b.WriteString(strconv.FormatInt(int64(k.foundDevices), 10))
+		b.WriteString(m.spinner.View())
+		b.WriteString("Connect the ")
+		b.WriteString(m.role.String())
+		b.WriteString(" controller. (devices ")
+		b.WriteString(strconv.FormatInt(int64(m.foundDevices), 10))
 		b.WriteString(")")
 		b.WriteString("\n")
 	case Mounting:
+		b.WriteString(m.spinner.View())
 		b.WriteString("Mounting, please wait...\n")
 	case ReadyToFlash:
 		b.WriteString("Press [Enter] to flash the bootloader.\n")
 	case Flashing:
+		b.WriteString(m.spinner.View())
 		b.WriteString("Flashing, please wait...\n")
 	case Done:
-		if k.mountPath != nil {
+		if m.mountPath != nil {
 			b.WriteString("\n")
 		}
 	}

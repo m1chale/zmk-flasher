@@ -3,6 +3,7 @@ package backend
 import (
 	"errors"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/new-er/zmk-flasher/files"
@@ -11,6 +12,7 @@ import (
 func CopyFileCmd(src, dest string, dryRun bool) tea.Cmd {
 	return func() tea.Msg {
 		if dryRun {
+			time.Sleep(time.Second)
 			return FileCopiedMsg{}
 		}
 		err := files.CopyFile(src, dest)

@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Bold(true).Foreground(backend.PrimaryColor).BorderStyle(lipgloss.NormalBorder())
-	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Foreground(lipgloss.Color("240")).BorderStyle(lipgloss.NormalBorder())
+	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Bold(true).Foreground(backend.PrimaryColor).BorderStyle(lipgloss.NormalBorder()).Height(5)
+	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Foreground(lipgloss.Color("240")).BorderStyle(lipgloss.NormalBorder()).Height(5)
 )
 
 type FlashView struct {
