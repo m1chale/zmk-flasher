@@ -2,6 +2,7 @@ package views
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,6 +28,8 @@ type KeyboardHalfView struct {
 	mountPath      *string
 
 	dryRun bool
+
+	foundDevices int
 }
 
 func NewKeyboardHalfView(role backend.KeyboardHalfRole, bootloaderFile string, mountPath *string, dryRun bool) KeyboardHalfView {
@@ -75,6 +78,7 @@ func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case backend.BlockDevicesChangedMsg:
 		if k.step == WaitForMount {
+			k.foundDevices = len(msg.BlockDevices)
 			if len(msg.Added) == 0 {
 				return k, nil
 			}
@@ -86,6 +90,17 @@ func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return k, tea.Batch(
 				backend.MountBlockDeviceCmd(msg.Added[0]),
 			)
+		} else if k.mountPath != nil {
+			for _, rem := range msg.Removed {
+				for _, remPath := range rem.MountPoints {
+					if remPath == *k.mountPath {
+						k.mountPath = nil
+						if k.step != Done && k.step != Flashing {
+							k.step = Unmounted
+						}
+					}
+				}
+			}
 		}
 	case backend.BlockDeviceMountedMsg:
 		if k.step == Mounting {
@@ -96,7 +111,7 @@ func (k KeyboardHalfView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case backend.FileCopiedMsg:
 		if k.step == Flashing {
 			k.step = Done
-			return k, nil
+			return k, backend.Cmd(FlashFinishedMsg{role: k.role})
 		}
 	}
 
@@ -115,7 +130,11 @@ func (k KeyboardHalfView) View() string {
 	if k.mountPath != nil {
 		b.WriteString(files.EllipsisFront(*k.mountPath, 40))
 	} else {
-		b.WriteString("")
+		if k.step == Done {
+			b.WriteString("")
+		} else {
+			b.WriteString("")
+		}
 	}
 	b.WriteString("\n")
 
@@ -125,7 +144,10 @@ func (k KeyboardHalfView) View() string {
 	case WaitForMount:
 		b.WriteString("Please connect the ")
 		b.WriteString(k.role.String())
-		b.WriteString(" controller.\n")
+		b.WriteString(" controller. (current devices ")
+		b.WriteString(strconv.FormatInt(int64(k.foundDevices), 10))
+		b.WriteString(")")
+		b.WriteString("\n")
 	case Mounting:
 		b.WriteString("Mounting, please wait...\n")
 	case ReadyToFlash:
@@ -133,7 +155,9 @@ func (k KeyboardHalfView) View() string {
 	case Flashing:
 		b.WriteString("Flashing, please wait...\n")
 	case Done:
-		b.WriteString("\n")
+		if k.mountPath != nil {
+			b.WriteString("\n")
+		}
 	}
 	return b.String()
 }
@@ -155,5 +179,9 @@ type FlashFinishedMsg struct {
 }
 
 type NextStepMsg struct {
+	role backend.KeyboardHalfRole
+}
+
+type KeyboardHalfUnmountedMsg struct {
 	role backend.KeyboardHalfRole
 }

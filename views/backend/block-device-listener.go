@@ -3,10 +3,11 @@ package backend
 import (
 	"time"
 
+	s "slices"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/new-er/zmk-flasher/platform"
 	"github.com/new-er/zmk-flasher/slices"
-	s "slices"
 )
 
 type BlockDeviceListener struct {
@@ -20,6 +21,10 @@ func (m BlockDeviceListener) Init() tea.Cmd {
 func (m BlockDeviceListener) Update(msg tea.Msg) (BlockDeviceListener, tea.Cmd) {
 	switch msg := msg.(type) {
 	case blockDevicesReceivedMsg:
+		if m.prevBlockDevices == nil{
+			m.prevBlockDevices = msg.BlockDevices
+			return m, getBlockDevicesEveryCmd()
+		}
 		if s.EqualFunc(msg.BlockDevices, m.prevBlockDevices, platform.CompareBlockDevice) {
 			return m, getBlockDevicesEveryCmd()
 		}
@@ -29,6 +34,7 @@ func (m BlockDeviceListener) Update(msg tea.Msg) (BlockDeviceListener, tea.Cmd) 
 			added = slices.GetAddedElements(m.prevBlockDevices, msg.BlockDevices, platform.CompareBlockDevice)
 			removed = slices.GetRemovedElements(m.prevBlockDevices, msg.BlockDevices, platform.CompareBlockDevice)
 		}
+
 		m.prevBlockDevices = msg.BlockDevices
 		blockDevicesChangedMsg := BlockDevicesChangedMsg{
 			BlockDevices: msg.BlockDevices,
@@ -42,7 +48,7 @@ func (m BlockDeviceListener) Update(msg tea.Msg) (BlockDeviceListener, tea.Cmd) 
 }
 
 func getBlockDevicesEveryCmd() tea.Cmd {
-	return tea.Every(time.Millisecond * 50, func(t time.Time) tea.Msg {
+	return tea.Every(time.Millisecond * 500, func(t time.Time) tea.Msg {
 		devices, err := platform.Operations.GetBlockDevices()
 		if err != nil {
 			return err

@@ -8,7 +8,6 @@ import (
 	"github.com/new-er/zmk-flasher/files"
 )
 
-
 func CopyFileCmd(src, dest string, dryRun bool) tea.Cmd {
 	return func() tea.Msg {
 		if dryRun {

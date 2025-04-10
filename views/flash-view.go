@@ -1,7 +1,6 @@
 package views
 
 import (
-	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,13 +9,14 @@ import (
 )
 
 var (
-	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Bold(true).Foreground(lipgloss.Color("205"))
+	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Bold(true).Foreground(backend.PrimaryColor)
 	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Foreground(lipgloss.Color("240"))
 )
 
 type FlashView struct {
 	blockDeviceListener backend.BlockDeviceListener
 
+	automationView             AutomationView
 	centralKeyboardHalfView    KeyboardHalfView
 	peripheralKeyboardHalfView KeyboardHalfView
 	selectedKeyboardHalf       backend.KeyboardHalfRole
@@ -26,6 +26,7 @@ type FlashView struct {
 
 func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centralMountPoint, peripheralMountPoint *string, dryRun bool) FlashView {
 	return FlashView{
+		automationView: NewAutomationView(),
 		centralKeyboardHalfView: NewKeyboardHalfView(
 			backend.Central,
 			centralBootloaderFile,
@@ -45,6 +46,7 @@ func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centra
 func (f FlashView) Init() tea.Cmd {
 	return tea.Batch(
 		f.blockDeviceListener.Init(),
+		f.automationView.Init(),
 		f.centralKeyboardHalfView.Init(),
 		f.peripheralKeyboardHalfView.Init(),
 	)
@@ -58,7 +60,13 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	f.blockDeviceListener = backendModel
 
-	model, cmd := f.peripheralKeyboardHalfView.Update(msg)
+	model, cmd := f.automationView.Update(msg)
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	f.automationView = model.(AutomationView)
+
+	model, cmd = f.peripheralKeyboardHalfView.Update(msg)
 	if cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -76,16 +84,34 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			return f, tea.Quit
 		case "h":
-			if f.CanToggleKeyboardHalf() {
+			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
 				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
 			}
 		case "l":
-			if f.CanToggleKeyboardHalf() {
+			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
 				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
 			}
+		case "0":
+			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
+				cmds = append(cmds, backend.Cmd(StartAutomationMsg{strategyIndex: 0}))
+			}
+		case "1":
+			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
+				cmds = append(cmds, backend.Cmd(StartAutomationMsg{strategyIndex: 1}))
+			}
 		case "enter":
-			keyboardHalf := f.getSelectedKeyboardHalf()
-			cmds = append(cmds, backend.Cmd(NextStepMsg{role: keyboardHalf.role}))
+			if f.automationView.currentAutomationStrategyIndex == -1 {
+				keyboardHalf := f.getSelectedKeyboardHalf()
+				cmds = append(cmds, backend.Cmd(NextStepMsg{role: keyboardHalf.role}))
+			}
+		}
+	case StartInteractiveMountMsg:
+		f.selectedKeyboardHalf = msg.role
+	case StartFlashMsg:
+		f.selectedKeyboardHalf = msg.role
+	case FlashFinishedMsg:
+		if f.centralKeyboardHalfView.step == Done && f.peripheralKeyboardHalfView.step == Done {
+			return f, tea.Quit
 		}
 	case error:
 		println("error")
@@ -108,12 +134,16 @@ func (f FlashView) getSelectedKeyboardHalf() KeyboardHalfView {
 
 func (f FlashView) View() string {
 	b := strings.Builder{}
-	b.WriteString("Zmk Flasher\n")
-	b.WriteString("Dry Run: " + strconv.FormatBool(f.dryRun) + "\n")
+	b.WriteString("Zmk Flasher ")
+	if f.dryRun {
+		b.WriteString("(DryRun)")
+	}
+	b.WriteString("\n")
 	b.WriteString("Press 'q' to quit\n")
-	if f.CanToggleKeyboardHalf() {
+	if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex != 1 {
 		b.WriteString("Press 'h'/'l' to switch between keyboard halves\n")
 	}
+	b.WriteString(f.automationView.View())
 	b.WriteString("----------------\n")
 
 	b.WriteString(
