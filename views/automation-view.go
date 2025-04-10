@@ -1,7 +1,6 @@
 package views
 
 import (
-	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -64,23 +63,20 @@ func (a AutomationView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a AutomationView) View() string {
+	if !a.IsAutomationRunning() {
+		return ""
+	}
 	b := strings.Builder{}
 
-	if a.currentAutomationStrategyIndex == -1 {
-		for i, strategy := range backend.AutomationStrategies {
-			b.WriteString("Press '")
-			b.WriteString(strconv.FormatInt(int64(i), 10))
-			b.WriteString("' to start \"")
-			b.WriteString(strategy.String(a.currentAutomationStep))
-			b.WriteString("\"\n")
-		}
-	} else {
-		strategy := backend.AutomationStrategies[a.currentAutomationStrategyIndex]
-		b.WriteString("Running automation \"")
-		b.WriteString(strategy.String(a.currentAutomationStep))
-		b.WriteString("\"\n")
-	}
+	strategy := backend.AutomationStrategies[a.currentAutomationStrategyIndex]
+	b.WriteString(strategy.String(a.currentAutomationStep))
+	b.WriteString("\n")
+
 	return b.String()
+}
+
+func (a AutomationView) IsAutomationRunning() bool {
+	return a.currentAutomationStrategyIndex != -1
 }
 
 type StartAutomationMsg struct {

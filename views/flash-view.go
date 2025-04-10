@@ -3,14 +3,16 @@ package views
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/new-er/zmk-flasher/views/backend"
 )
 
 var (
-	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Bold(true).Foreground(backend.PrimaryColor)
-	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Foreground(lipgloss.Color("240"))
+	selectedKeyboardStyle   = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Bold(true).Foreground(backend.PrimaryColor).BorderStyle(lipgloss.NormalBorder())
+	unselectedKeyboardStyle = lipgloss.NewStyle().Margin(0, 1).Padding(0, 1).Foreground(lipgloss.Color("240")).BorderStyle(lipgloss.NormalBorder())
 )
 
 type FlashView struct {
@@ -22,9 +24,13 @@ type FlashView struct {
 	selectedKeyboardHalf       backend.KeyboardHalfRole
 
 	dryRun bool
+
+	keys keyMap
+	help help.Model
 }
 
 func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centralMountPoint, peripheralMountPoint *string, dryRun bool) FlashView {
+	help := help.New()
 	return FlashView{
 		automationView: NewAutomationView(),
 		centralKeyboardHalfView: NewKeyboardHalfView(
@@ -40,6 +46,8 @@ func NewFlashView(centralBootloaderFile, peripheralBootloaderFile string, centra
 			dryRun,
 		),
 		dryRun: dryRun,
+		keys:   newKeyMap(),
+		help: help,
 	}
 }
 
@@ -80,29 +88,24 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q":
-			return f, tea.Quit
-		case "h":
-			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
+		switch {
+		case key.Matches(msg, f.keys.left) || key.Matches(msg, f.keys.right):
+			if f.isInputEnabled() {
 				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
 			}
-		case "l":
-			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
-				f.selectedKeyboardHalf = f.selectedKeyboardHalf.Toggle()
-			}
-		case "0":
-			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
-				cmds = append(cmds, backend.Cmd(StartAutomationMsg{strategyIndex: 0}))
-			}
-		case "1":
-			if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex == -1 {
-				cmds = append(cmds, backend.Cmd(StartAutomationMsg{strategyIndex: 1}))
-			}
-		case "enter":
-			if f.automationView.currentAutomationStrategyIndex == -1 {
+		case key.Matches(msg, f.keys.confirm):
+			if f.isInputEnabled() {
 				keyboardHalf := f.getSelectedKeyboardHalf()
 				cmds = append(cmds, backend.Cmd(NextStepMsg{role: keyboardHalf.role}))
+			}
+		case key.Matches(msg, f.keys.help):
+			f.help.ShowAll = true
+		case key.Matches(msg, f.keys.quit):
+			return f, tea.Quit
+		}
+		for i, automationKey := range f.keys.automationBindings {
+			if key.Matches(msg, automationKey) && f.isInputEnabled() {
+				cmds = append(cmds, backend.Cmd(StartAutomationMsg{strategyIndex: i}))
 			}
 		}
 	case StartInteractiveMountMsg:
@@ -122,6 +125,9 @@ func (f FlashView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return f, tea.Batch(cmds...)
 }
 
+func (f FlashView) isInputEnabled() bool {
+	return f.centralKeyboardHalfView.CanUnselect() && f.peripheralKeyboardHalfView.CanUnselect() && !f.automationView.IsAutomationRunning()
+}
 func (f FlashView) CanToggleKeyboardHalf() bool {
 	return f.centralKeyboardHalfView.CanUnselect() && f.peripheralKeyboardHalfView.CanUnselect()
 }
@@ -139,12 +145,7 @@ func (f FlashView) View() string {
 		b.WriteString("(DryRun)")
 	}
 	b.WriteString("\n")
-	b.WriteString("Press 'q' to quit\n")
-	if f.CanToggleKeyboardHalf() && f.automationView.currentAutomationStrategyIndex != 1 {
-		b.WriteString("Press 'h'/'l' to switch between keyboard halves\n")
-	}
 	b.WriteString(f.automationView.View())
-	b.WriteString("----------------\n")
 
 	b.WriteString(
 		lipgloss.JoinHorizontal(
@@ -153,6 +154,9 @@ func (f FlashView) View() string {
 			getKeyboardHalfViewStyle(backend.Peripheral, f.selectedKeyboardHalf).Render(f.peripheralKeyboardHalfView.View()),
 		),
 	)
+	b.WriteString("\n")
+
+	b.WriteString(f.help.View(f.keys))
 
 	return b.String()
 }
