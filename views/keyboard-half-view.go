@@ -137,14 +137,12 @@ func (m KeyboardHalfView) View() string {
 	b.WriteString(files.EllipsisFront(m.bootloaderFile, 40))
 	b.WriteString("\n")
 
-	b.WriteString("󱊞 : ")
+	b.WriteString("🗁 : ")
 	if m.mountPath != nil {
 		b.WriteString(files.EllipsisFront(*m.mountPath, 40))
 	} else {
 		if m.step == Done {
 			b.WriteString("")
-		} else {
-			b.WriteString("")
 		}
 	}
 	b.WriteString("\n")
